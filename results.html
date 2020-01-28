@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=200, initial-scale=1" />
+    <script src="index.min.js"></script>
+  </head>
+  <body style="font-size: 2em">
+    <div>Ready: <span id="readiness">false</span></div>
+    <div id="results"></div>
+  </body>
+  <script type="text/javascript">
+    const topic = 'votes';
+    const node = new Ipfs({
+      repo: 'ipfs-test1234',
+      config: {
+        Addresses: {
+          Swarm: [
+            '/dns4/ws-star.discovery.libp2p.io/tcp/443/wss/p2p-websocket-star',
+          ],
+        },
+      },
+      EXPERIMENTAL: { pubsub: true },
+    });
+
+    let ready = false;
+    let votes = {
+      game1: 0,
+      game2: 0,
+    };
+    const redraw = () => {
+      let t = '<table>';
+
+      Object.entries(votes).forEach((k, v) => {
+        t += `<tr><td>${k[0]}</td><td>${k[1]}</td><td>`;
+      });
+      t += '</td></tr></table>';
+      results.innerHTML = t;
+    };
+
+    const readinessLabel = document.getElementById('readiness');
+    const results = document.getElementById('results');
+    node.config.set('Discovery.MDNS.Enabled', true);
+    // once the node is ready
+    node.once('ready', () => {
+      readinessLabel.innerText = 'true';
+      node.pubsub.subscribe(
+        topic,
+        m => {
+          console.log(m.data);
+          const message = new TextDecoder('utf-8').decode(m.data);
+          votes[message]++;
+          redraw();
+          console.log(message);
+        },
+        { discover: true },
+        () => {
+          redraw();
+        }
+      );
+    });
+  </script>
+</html>
